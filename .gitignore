@@ -1,0 +1,56 @@
+# --- Salesforce / SFDX ---
+.sfdx/
+.sf/
+.localdevserver/
+deploy-options.json
+sfdx-project.json.bak
+*.log
+
+# --- Node / TypeScript ---
+node_modules/
+dist/
+build/
+coverage/
+.npm/
+*.tsbuildinfo
+
+# --- Python (in case worker goes Python) ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Env & secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.key.b64
+secrets/
+
+# --- VS Code (keep shared settings, ignore personal) ---
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Claude Code local artefacts ---
+.claude/local/
+.claude/cache/
+
+# --- MCP config (contains secrets) ---
+.mcp.json
+
+# --- Ingestion worker scratch ---
+data-samples/raw/
+validation/shadow_run_results/*.csv
+!validation/shadow_run_results/.gitkeep
