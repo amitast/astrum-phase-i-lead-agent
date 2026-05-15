@@ -83,8 +83,8 @@ export async function runEnrichmentPass(): Promise<void> {
     'Content-Type': 'application/json',
   };
 
-  // Query accounts needing stage or address enrichment
-  const soql = `SELECT Id, Name FROM Account WHERE RecordType.Name = 'Astrum Target Biotech' AND (Company_Stage__c = 'Unknown' OR BillingCity = null) LIMIT 200`;
+  // Query accounts needing stage enrichment (BillingCity requires FLS — handled separately after permission set deploy)
+  const soql = `SELECT Id, Name FROM Account WHERE RecordType.Name = 'Astrum Target Biotech' AND Company_Stage__c = 'Unknown' LIMIT 200`;
   let queryData: { records: Array<{ Id: string; Name: string }> };
   try {
     const { data } = await axios.get<{ records: Array<{ Id: string; Name: string }> }>(
@@ -111,25 +111,33 @@ export async function runEnrichmentPass(): Promise<void> {
     try {
       const profile = await lookupCompanyProfile(account.Name);
 
-      const patch: Record<string, unknown> = {};
-      if (profile.stage !== 'Unknown')   patch.Company_Stage__c = profile.stage;
-      if (profile.billingStreet)         patch.BillingStreet = profile.billingStreet;
-      if (profile.billingCity)           patch.BillingCity = profile.billingCity;
-      if (profile.billingState)          patch.BillingState = profile.billingState;
-      if (profile.billingPostalCode)     patch.BillingPostalCode = profile.billingPostalCode;
-      if (profile.billingCountry)        patch.BillingCountry = profile.billingCountry;
-      // Sync HQ_Country__c from EDGAR (more authoritative than CT.gov location field)
-      if (profile.billingCountry)        patch.HQ_Country__c = profile.billingCountry;
+      // PATCH 1: custom fields — always have FLS via permission set
+      const stagePatch: Record<string, unknown> = {};
+      if (profile.stage !== 'Unknown')   stagePatch.Company_Stage__c = profile.stage;
+      if (profile.billingCountry)        stagePatch.HQ_Country__c = profile.billingCountry;
 
-      if (Object.keys(patch).length > 0) {
-        await axios.patch(
-          `${baseUrl}/sobjects/Account/${account.Id}`,
-          patch,
-          { headers },
-        );
-        console.log(`[processor] ${account.Name} → stage: ${profile.stage}, city: ${profile.billingCity ?? '—'}`);
+      if (Object.keys(stagePatch).length > 0) {
+        await axios.patch(`${baseUrl}/sobjects/Account/${account.Id}`, stagePatch, { headers });
         updated++;
       }
+
+      // PATCH 2: standard billing address fields — requires FLS on BillingCity etc. in permission set
+      const addrPatch: Record<string, unknown> = {};
+      if (profile.billingStreet)     addrPatch.BillingStreet = profile.billingStreet;
+      if (profile.billingCity)       addrPatch.BillingCity = profile.billingCity;
+      if (profile.billingState)      addrPatch.BillingState = profile.billingState;
+      if (profile.billingPostalCode) addrPatch.BillingPostalCode = profile.billingPostalCode;
+      if (profile.billingCountry)    addrPatch.BillingCountry = profile.billingCountry;
+
+      if (Object.keys(addrPatch).length > 0) {
+        try {
+          await axios.patch(`${baseUrl}/sobjects/Account/${account.Id}`, addrPatch, { headers });
+        } catch {
+          console.warn(`[processor] Address PATCH skipped for ${account.Name} — billing address FLS not yet granted`);
+        }
+      }
+
+      console.log(`[processor] ${account.Name} → stage: ${profile.stage}, city: ${profile.billingCity ?? '—'}`);
     } catch (err) {
       console.warn(`[processor] Enrichment failed for ${account.Name}:`, (err as Error).message);
     }
