@@ -45,7 +45,7 @@ const SOURCE_CONFIDENCE_SCORE: Record<string, number> = {
 
 interface SignalRow {
   Target_Company__c: string;
-  Target_Company__r?: { Lead_Agent_External_Id__c?: string };
+  Target_Company__r?: { Lead_Agent_External_Id__c?: string; Company_Stage__c?: string };
   Signal_Type__c: string;
   Signal_Date__c: string;
   Modality__c: string;
@@ -85,6 +85,7 @@ export async function runScoringPass(): Promise<void> {
 
   const soql = [
     'SELECT Target_Company__c, Target_Company__r.Lead_Agent_External_Id__c,',
+    'Target_Company__r.Company_Stage__c,',
     'Signal_Type__c, Signal_Date__c, Modality__c, Therapeutic_Area__c,',
     'Company_Stage__c, Phase_I_Readiness_Weight__c, Source__r.Confidence_Tier__c',
     'FROM Signal__c WHERE Target_Company__c != null',
@@ -196,15 +197,19 @@ function aggregateScore(accountId: string, signals: SignalRow[]): AccountScore {
       phaseIDriver = sig.Signal_Type__c;
     }
 
-    const modalityScore = MODALITY_SCORE[sig.Modality__c] ?? 0;
-    const taScore       = TA_SCORE[sig.Therapeutic_Area__c] ?? 0;
-    const stageScore    = STAGE_SCORE[sig.Company_Stage__c] ?? 0;
-    const astrumFit     = (modalityScore * 0.40) + (taScore * 0.40) + (stageScore * 0.20);
+    const modalityScore  = MODALITY_SCORE[sig.Modality__c] ?? 0;
+    const taScore        = TA_SCORE[sig.Therapeutic_Area__c] ?? 0;
+    // Use signal stage when known; fall back to EDGAR-enriched account stage
+    const signalStage    = sig.Company_Stage__c;
+    const accountStage   = sig.Target_Company__r?.Company_Stage__c ?? 'Unknown';
+    const effectiveStage = (signalStage && signalStage !== 'Unknown') ? signalStage : accountStage;
+    const stageScore     = STAGE_SCORE[effectiveStage] ?? 0;
+    const astrumFit      = (modalityScore * 0.40) + (taScore * 0.40) + (stageScore * 0.20);
     if (astrumFit > maxAstrumFit) {
       maxAstrumFit = astrumFit;
       fitModality = sig.Modality__c;
       fitTA = sig.Therapeutic_Area__c;
-      fitStage = sig.Company_Stage__c;
+      fitStage = effectiveStage;
     }
 
     const confTier = sig.Source__r?.Confidence_Tier__c ?? 'Tier 3-Aggregator';
@@ -292,9 +297,9 @@ function computeTimingScore(dateStr: string): number {
 }
 
 function band(score: number): string {
-  if (score >= 75) return 'Hot';
-  if (score >= 55) return 'Warm';
-  if (score >= 35) return 'Watch';
+  if (score >= 92) return 'Hot';
+  if (score >= 75) return 'Warm';
+  if (score >= 55) return 'Watch';
   return 'Cold';
 }
 

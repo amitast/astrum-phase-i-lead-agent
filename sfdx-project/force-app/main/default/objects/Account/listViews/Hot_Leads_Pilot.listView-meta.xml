@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Hot_Leads_Pilot</fullName>
+    <columns>Overall_Priority_Score__c</columns>
+    <columns>Lead_Agent_TA__c</columns>
+    <columns>Modality__c</columns>
+    <columns>Company_Stage__c</columns>
+    <columns>Is_US_HQ__c</columns>
+    <columns>HQ_Country__c</columns>
+    <columns>Last_Signal_Date__c</columns>
+    <columns>Lead_Agent_Status__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Priority_Band__c</field>
+        <operation>equals</operation>
+        <value>Hot</value>
+    </filters>
+    <label>Hot Leads — Pilot</label>
+    <sharedTo>
+        <allInternalUsers/>
+    </sharedTo>
+</ListView>
