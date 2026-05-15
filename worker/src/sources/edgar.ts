@@ -75,6 +75,11 @@ async function findCik(companyName: string): Promise<string | null> {
     hits.sort((a, b) =>
       (b._source.file_date ?? '').localeCompare(a._source.file_date ?? ''),
     );
+    // Log full hit structure once to identify correct CIK field
+    if (companyName === 'Amgen' || companyName === 'Incyte Corporation') {
+      console.log(`[edgar] DEBUG hit[0] keys for "${companyName}":`, JSON.stringify(Object.keys(hits[0])));
+      console.log(`[edgar] DEBUG _source for "${companyName}":`, JSON.stringify(hits[0]._source));
+    }
     const cik = hits[0]._source.entity_id ?? null;
     console.log(`[edgar] Found CIK ${cik} for "${companyName}" (${hits.length} hits)`);
     return cik;
