@@ -5,7 +5,7 @@ const REGULATORY_CRON = process.env.REGULATORY_CRON ?? '0 * * * *';    // hourly
 const PRESS_CRON      = process.env.PRESS_CRON      ?? '0 */6 * * *';  // every 6 hours
 const SCORING_CRON    = process.env.SCORING_CRON    ?? '0 2 * * *';    // 2am UTC nightly
 
-console.log('[scheduler] Astrum Lead Agent Worker starting…');
+console.log('[scheduler] Astrum Lead Agent Worker starting… (v2 — enrichment + address)');
 console.log(`[scheduler] Regulatory pass schedule: ${REGULATORY_CRON}`);
 console.log(`[scheduler] Press RSS pass schedule:  ${PRESS_CRON}`);
 console.log(`[scheduler] Nightly scoring schedule: ${SCORING_CRON}`);
