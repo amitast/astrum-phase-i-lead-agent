@@ -69,28 +69,9 @@
         <recordType>Account.Astrum_Target_Biotech</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
-    <!-- Standard billing address fields — Minimum Access profile needs explicit FLS; BillingPostalCode excluded (not a valid permission set field) -->
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Account.BillingStreet</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Account.BillingCity</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Account.BillingState</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Account.BillingCountry</field>
-        <readable>true</readable>
-    </fieldPermissions>
     <!-- Account custom fields (none are required, all need explicit FLS) -->
+    <!-- NOTE: Standard compound address sub-fields (BillingCity etc.) cannot be granted via permission sets.
+         Fix: Setup → Profiles → Minimum Access - Salesforce → Object Settings → Account → enable billing address fields. -->
     <fieldPermissions>
         <editable>true</editable>
         <field>Account.Lead_Agent_External_Id__c</field>

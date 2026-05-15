@@ -124,7 +124,6 @@ async function fetchSubmissionsProfile(rawCik: string): Promise<CompanyProfile> 
 
     // --- Address ---
     const addr = data.addresses?.business ?? data.addresses?.mailing;
-    console.log(`[edgar] Submissions address for CIK ${paddedCik}:`, JSON.stringify(addr ?? null));
     const profile: CompanyProfile = { stage: 'Unknown', ...parseAddress(addr) };
 
     // --- Stage from filing history ---

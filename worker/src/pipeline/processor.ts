@@ -83,8 +83,7 @@ export async function runEnrichmentPass(): Promise<void> {
     'Content-Type': 'application/json',
   };
 
-  // Query all accounts — avoids BillingCity FLS issue; per-account logic skips already-complete records
-  const soql = `SELECT Id, Name FROM Account WHERE RecordType.Name = 'Astrum Target Biotech' LIMIT 200`;
+  const soql = `SELECT Id, Name FROM Account WHERE RecordType.Name = 'Astrum Target Biotech' AND (Company_Stage__c = 'Unknown' OR BillingCity = null) LIMIT 200`;
   let queryData: { records: Array<{ Id: string; Name: string }> };
   try {
     const { data } = await axios.get<{ records: Array<{ Id: string; Name: string }> }>(
