@@ -83,7 +83,7 @@ export async function runEnrichmentPass(): Promise<void> {
     'Content-Type': 'application/json',
   };
 
-  const soql = `SELECT Id, Name FROM Account WHERE RecordType.Name = 'Astrum Target Biotech' AND (Company_Stage__c = 'Unknown' OR BillingCity = null) LIMIT 200`;
+  const soql = `SELECT Id, Name FROM Account WHERE RecordType.Name = 'Astrum Target Biotech' AND (Company_Stage__c = 'Unknown' OR BillingCity = null OR (HQ_Country__c = 'United States' AND Is_US_HQ__c = false) OR (HQ_Country__c != null AND HQ_Country__c != 'United States' AND HQ_Country__c != 'Unknown' AND Is_US_HQ__c = true)) LIMIT 200`;
   let queryData: { records: Array<{ Id: string; Name: string }> };
   try {
     const { data } = await axios.get<{ records: Array<{ Id: string; Name: string }> }>(
@@ -113,7 +113,10 @@ export async function runEnrichmentPass(): Promise<void> {
       // PATCH 1: custom fields — always have FLS via permission set
       const stagePatch: Record<string, unknown> = {};
       if (profile.stage !== 'Unknown')   stagePatch.Company_Stage__c = profile.stage;
-      if (profile.billingCountry)        stagePatch.HQ_Country__c = profile.billingCountry;
+      if (profile.billingCountry) {
+        stagePatch.HQ_Country__c = profile.billingCountry;
+        stagePatch.Is_US_HQ__c   = profile.billingCountry === 'United States';
+      }
 
       if (Object.keys(stagePatch).length > 0) {
         await axios.patch(`${baseUrl}/sobjects/Account/${account.Id}`, stagePatch, { headers });
