@@ -66,7 +66,7 @@ async function findCik(companyName: string): Promise<string | null> {
       timeout: 10_000,
       headers: { 'User-Agent': USER_AGENT },
     });
-    const hits: Array<{ _source: { entity_id?: string; file_date?: string } }> =
+    const hits: Array<{ _source: { ciks?: string[]; file_date?: string } }> =
       data?.hits?.hits ?? [];
     if (hits.length === 0) {
       console.log(`[edgar] No EFTS hits for "${companyName}" — trying unquoted search`);
@@ -75,13 +75,8 @@ async function findCik(companyName: string): Promise<string | null> {
     hits.sort((a, b) =>
       (b._source.file_date ?? '').localeCompare(a._source.file_date ?? ''),
     );
-    // Log full hit structure once to identify correct CIK field
-    if (companyName === 'Amgen' || companyName === 'Incyte Corporation') {
-      console.log(`[edgar] DEBUG hit[0] keys for "${companyName}":`, JSON.stringify(Object.keys(hits[0])));
-      console.log(`[edgar] DEBUG _source for "${companyName}":`, JSON.stringify(hits[0]._source));
-    }
-    const cik = hits[0]._source.entity_id ?? null;
-    console.log(`[edgar] Found CIK ${cik} for "${companyName}" (${hits.length} hits)`);
+    const cik = hits[0]._source.ciks?.[0] ?? null;
+    console.log(`[edgar] CIK ${cik} for "${companyName}" (${hits.length} hits)`);
     return cik;
   } catch (err) {
     console.warn(`[edgar] EFTS lookup error for "${companyName}":`, (err as Error).message);
@@ -101,7 +96,7 @@ async function findCikUnquoted(companyName: string): Promise<string | null> {
       timeout: 10_000,
       headers: { 'User-Agent': USER_AGENT },
     });
-    const hits: Array<{ _source: { entity_id?: string; file_date?: string; display_names?: string } }> =
+    const hits: Array<{ _source: { ciks?: string[]; file_date?: string; display_names?: string[] } }> =
       data?.hits?.hits ?? [];
     if (hits.length === 0) {
       console.log(`[edgar] No hits for "${companyName}" (unquoted either) — skipping`);
@@ -110,8 +105,8 @@ async function findCikUnquoted(companyName: string): Promise<string | null> {
     hits.sort((a, b) =>
       (b._source.file_date ?? '').localeCompare(a._source.file_date ?? ''),
     );
-    const cik = hits[0]._source.entity_id ?? null;
-    console.log(`[edgar] Unquoted CIK ${cik} for "${companyName}" — filer: ${hits[0]._source.display_names ?? '?'}`);
+    const cik = hits[0]._source.ciks?.[0] ?? null;
+    console.log(`[edgar] Unquoted CIK ${cik} for "${companyName}" — filer: ${hits[0]._source.display_names?.[0] ?? '?'}`);
     return cik;
   } catch (err) {
     console.warn(`[edgar] Unquoted EFTS lookup error for "${companyName}":`, (err as Error).message);
