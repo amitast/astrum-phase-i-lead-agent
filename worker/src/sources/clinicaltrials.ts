@@ -23,6 +23,8 @@ const FIELDS = [
   'LocationCountry',
   'LocationCity',
   'DesignPrimaryPurpose',
+  'InterventionType',
+  'InterventionName',
 ].join(',');
 
 interface CtStudy {
@@ -57,6 +59,12 @@ interface CtStudy {
       locations?: Array<{
         country?: string;
         city?: string;
+      }>;
+    };
+    armsInterventionsModule?: {
+      interventions?: Array<{
+        type?: string;
+        name?: string;
       }>;
     };
   };
@@ -132,6 +140,9 @@ function normaliseStudy(study: CtStudy): NormalisedSignal | null {
 
   const dedupeHash = signalHash(sourceUrl, 'Trial Registration', signalDate, companyName);
 
+  const interventions = proto.armsInterventionsModule?.interventions ?? [];
+  const modality = mapInterventionToModality(interventions);
+
   const signal: NormalisedSignal = {
     externalId: dedupeHash,
     companyName,
@@ -140,7 +151,7 @@ function normaliseStudy(study: CtStudy): NormalisedSignal | null {
     hqCountry: usStatus === 'US' ? 'United States' : 'Unknown',
     signalType: 'Trial Registration',
     signalDate,
-    modality: 'Unknown',    // ClinicalTrials.gov does not reliably expose modality
+    modality,
     therapeuticArea: mapConditionToTA(conditions),
     companyStage: 'Unknown',
     confidence: 'High',
@@ -155,6 +166,44 @@ function normaliseStudy(study: CtStudy): NormalisedSignal | null {
 
   signal.phaseIReadinessWeight = scoreSignal(signal).phaseIReadinessWeight;
   return signal;
+}
+
+function mapInterventionToModality(
+  interventions: Array<{ type?: string; name?: string }>,
+): string {
+  for (const { type = '', name = '' } of interventions) {
+    const n = name.toLowerCase();
+    const t = type.toUpperCase();
+
+    // ADC: antibody-drug conjugates
+    if (n.includes('adc') || n.includes('antibody drug conjugate') || n.includes('antibody-drug conjugate')) return 'ADC';
+
+    // Biosimilar: explicit labelling or known suffix
+    if (n.includes('biosimilar')) return 'Biosimilar';
+
+    // Peptide: name suffix or keyword
+    if (n.endsWith('tide') || n.includes('peptide')) return 'Peptide';
+
+    // Oligonucleotide: antisense, siRNA, mRNA, oligonucleotide keywords
+    if (
+      n.includes('sirna') || n.includes('mrna') || n.includes('antisense') ||
+      n.includes('oligonucleotide') || n.endsWith('sen') || n.endsWith('mir')
+    ) return 'Oligonucleotide';
+
+    // Small molecule: kinase inhibitors, common small-molecule suffixes
+    if (
+      t === 'DRUG' ||
+      n.endsWith('inib') || n.endsWith('nib') || n.endsWith('ib') ||
+      n.includes('kinase inhibitor') || n.includes('inhibitor')
+    ) return 'Small molecule';
+
+    // Biological fallback: monoclonal antibodies, fusion proteins
+    if (t === 'BIOLOGICAL') {
+      if (n.endsWith('mab') || n.endsWith('cept') || n.endsWith('kin')) return 'Biosimilar';
+      return 'Other';
+    }
+  }
+  return 'Unknown';
 }
 
 function mapConditionToTA(conditions: string): string {

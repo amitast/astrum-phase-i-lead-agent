@@ -1,9 +1,13 @@
+import axios from 'axios';
 import { fetchClinicalTrialsSignals } from '../sources/clinicaltrials.js';
-import { fetchEdgarSignals } from '../sources/edgar.js';
+import { fetchEdgarSignals, lookupCompanyStage } from '../sources/edgar.js';
 import { fetchGlobeNewswireSignals } from '../sources/globenewswire.js';
 import { upsertSignals } from '../salesforce/bulkApi.js';
+import { getSalesforceAuth } from '../salesforce/auth.js';
 import { runScoringPass } from '../scoring/scoreWriter.js';
 import type { NormalisedSignal } from '../salesforce/types.js';
+
+const API_VERSION = '61.0';
 
 export async function runRegulatoryPass(): Promise<void> {
   console.log('[processor] Starting regulatory pass (ClinicalTrials.gov + EDGAR)…');
@@ -26,6 +30,7 @@ export async function runRegulatoryPass(): Promise<void> {
   }
 
   await pushToSalesforce(signals, 'regulatory');
+  await runEnrichmentPass();
 }
 
 export async function runPressPass(): Promise<void> {
@@ -57,6 +62,57 @@ async function pushToSalesforce(signals: NormalisedSignal[], passName: string): 
     console.error(`[processor] ${passName}: Salesforce upsert failed:`, err);
     throw err;
   }
+}
+
+/**
+ * Queries Salesforce for Accounts with Company_Stage__c = 'Unknown' and
+ * enriches them via SEC EDGAR (public company check + Form D amount lookup).
+ * Uses REST API PATCH (not Bulk API) — expected volume is low (< 200 accounts).
+ */
+export async function runEnrichmentPass(): Promise<void> {
+  console.log('[processor] Starting enrichment pass (EDGAR company stage)…');
+
+  const { accessToken, instanceUrl } = await getSalesforceAuth();
+  const baseUrl = `${instanceUrl}/services/data/v${API_VERSION}`;
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+  };
+
+  // Query accounts needing stage enrichment
+  const soql = `SELECT Id, Name FROM Account WHERE RecordType.Name = 'Astrum Target Biotech' AND Company_Stage__c = 'Unknown' LIMIT 200`;
+  const { data } = await axios.get<{ records: Array<{ Id: string; Name: string }> }>(
+    `${baseUrl}/query`,
+    { headers, params: { q: soql } },
+  );
+
+  const accounts = data.records ?? [];
+  if (accounts.length === 0) {
+    console.log('[processor] Enrichment pass: no accounts need stage enrichment');
+    return;
+  }
+
+  console.log(`[processor] Enriching ${accounts.length} accounts via EDGAR…`);
+  let updated = 0;
+
+  for (const account of accounts) {
+    try {
+      const stage = await lookupCompanyStage(account.Name);
+      if (stage !== 'Unknown') {
+        await axios.patch(
+          `${baseUrl}/sobjects/Account/${account.Id}`,
+          { Company_Stage__c: stage },
+          { headers },
+        );
+        console.log(`[processor] ${account.Name} → ${stage}`);
+        updated++;
+      }
+    } catch (err) {
+      console.warn(`[processor] Enrichment failed for ${account.Name}:`, (err as Error).message);
+    }
+  }
+
+  console.log(`[processor] Enrichment pass complete — updated ${updated}/${accounts.length} accounts`);
 }
 
 export async function runNightlyScoringPass(): Promise<void> {
