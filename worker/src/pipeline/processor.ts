@@ -83,8 +83,8 @@ export async function runEnrichmentPass(): Promise<void> {
     'Content-Type': 'application/json',
   };
 
-  // Query accounts needing stage enrichment (BillingCity requires FLS — handled separately after permission set deploy)
-  const soql = `SELECT Id, Name FROM Account WHERE RecordType.Name = 'Astrum Target Biotech' AND Company_Stage__c = 'Unknown' LIMIT 200`;
+  // BillingCity in WHERE requires FLS on the integration user — granted via Astrum_Lead_Agent_User permission set
+  const soql = `SELECT Id, Name FROM Account WHERE RecordType.Name = 'Astrum Target Biotech' AND (Company_Stage__c = 'Unknown' OR BillingCity = null) LIMIT 200`;
   let queryData: { records: Array<{ Id: string; Name: string }> };
   try {
     const { data } = await axios.get<{ records: Array<{ Id: string; Name: string }> }>(
