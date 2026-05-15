@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { NormalisedSignal } from '../salesforce/types.js';
 import { signalHash, companyHash } from '../utils/hash.js';
-import { classifyUsHq } from '../utils/usFilter.js';
+import { classifyUsHq, classifyRegion } from '../utils/usFilter.js';
 import { scoreSignal } from '../scoring/deterministic.js';
 
 const BASE_URL = 'https://clinicaltrials.gov/api/v2/studies';
@@ -125,9 +125,10 @@ function normaliseStudy(study: CtStudy): NormalisedSignal | null {
   const locations = proto.contactsLocationsModule?.locations ?? [];
   const firstLocation = locations[0];
   const usStatus = classifyUsHq(firstLocation?.country, firstLocation?.city);
+  const region   = classifyRegion(firstLocation?.country, firstLocation?.city);
 
-  // Only pass through US and Unknown; drop confirmed NonUS
-  if (usStatus === 'NonUS') return null;
+  // Drop only companies outside US/UK/EU; pass through Unknown
+  if (region === 'Other') return null;
 
   const signalDate = proto.statusModule.studyFirstSubmitDate
     ?? proto.statusModule.startDateStruct?.date
