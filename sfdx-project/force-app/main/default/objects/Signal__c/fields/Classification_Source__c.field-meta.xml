@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Classification_Source__c</fullName>
+    <label>Classification Source</label>
+    <required>true</required>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Worker - Deterministic</fullName><default>true</default><label>Worker - Deterministic</label></value>
+            <value><fullName>Agentforce - AI Classified</fullName><default>false</default><label>Agentforce - AI Classified</label></value>
+            <value><fullName>Human</fullName><default>false</default><label>Human</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

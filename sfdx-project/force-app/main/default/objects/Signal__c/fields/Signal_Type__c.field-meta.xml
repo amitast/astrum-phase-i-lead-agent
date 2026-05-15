@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Signal_Type__c</fullName>
+    <label>Signal Type</label>
+    <required>true</required>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>IND / IMPD Filing</fullName><default>false</default><label>IND / IMPD Filing</label></value>
+            <value><fullName>Trial Registration - ClinicalTrials.gov</fullName><default>false</default><label>Trial Registration - ClinicalTrials.gov</label></value>
+            <value><fullName>Funding Round</fullName><default>false</default><label>Funding Round</label></value>
+            <value><fullName>Key Hire - CMO / VP Clinical</fullName><default>false</default><label>Key Hire - CMO / VP Clinical</label></value>
+            <value><fullName>Positive Preclinical Results</fullName><default>false</default><label>Positive Preclinical Results</label></value>
+            <value><fullName>Partnership / Licensing</fullName><default>false</default><label>Partnership / Licensing</label></value>
+            <value><fullName>Regulatory Filing - Other</fullName><default>false</default><label>Regulatory Filing - Other</label></value>
+            <value><fullName>Press Release - Other</fullName><default>false</default><label>Press Release - Other</label></value>
+            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

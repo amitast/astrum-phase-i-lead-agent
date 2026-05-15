@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Verification_Status__c</fullName>
+    <label>Verification Status</label>
+    <required>true</required>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Unverified</fullName><default>true</default><label>Unverified</label></value>
+            <value><fullName>Verified</fullName><default>false</default><label>Verified</label></value>
+            <value><fullName>Broken</fullName><default>false</default><label>Broken</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

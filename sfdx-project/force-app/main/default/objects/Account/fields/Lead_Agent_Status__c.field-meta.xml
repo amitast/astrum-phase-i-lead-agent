@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Lead_Agent_Status__c</fullName>
+    <label>Lead Agent Status</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Active</fullName><default>true</default><label>Active</label></value>
+            <value><fullName>Archived</fullName><default>false</default><label>Archived</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

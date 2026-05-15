@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Recommended_Action__c</fullName>
+    <label>Recommended Action</label>
+    <required>true</required>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Initiate Outreach</fullName><default>false</default><label>Initiate Outreach</label></value>
+            <value><fullName>Follow Up</fullName><default>false</default><label>Follow Up</label></value>
+            <value><fullName>Research Further</fullName><default>false</default><label>Research Further</label></value>
+            <value><fullName>No Action</fullName><default>false</default><label>No Action</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

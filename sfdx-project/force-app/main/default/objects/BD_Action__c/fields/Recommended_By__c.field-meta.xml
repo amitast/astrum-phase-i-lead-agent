@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Recommended_By__c</fullName>
+    <label>Recommended By</label>
+    <required>true</required>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Agent</fullName><default>true</default><label>Agent</label></value>
+            <value><fullName>Human</fullName><default>false</default><label>Human</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

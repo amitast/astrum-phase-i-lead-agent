@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Signals_Inbox</fullName>
+    <columns>Target_Company__c</columns>
+    <columns>Signal_Type__c</columns>
+    <columns>Signal_Date__c</columns>
+    <columns>Status__c</columns>
+    <columns>Modality__c</columns>
+    <columns>Therapeutic_Area__c</columns>
+    <columns>Confidence__c</columns>
+    <columns>Phase_I_Readiness_Weight__c</columns>
+    <columns>Source__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Status__c</field>
+        <operation>equals</operation>
+        <value>New</value>
+    </filters>
+    <label>Signals Inbox</label>
+    <sharedTo>
+        <allInternalUsers/>
+    </sharedTo>
+</ListView>

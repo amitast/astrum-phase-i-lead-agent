@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Astrum_Hot_Leads</fullName>
+    <columns>Priority_Band__c</columns>
+    <columns>Overall_Priority_Score__c</columns>
+    <columns>Lead_Agent_TA__c</columns>
+    <columns>Modality__c</columns>
+    <columns>Company_Stage__c</columns>
+    <columns>Signal_Count__c</columns>
+    <columns>Last_Signal_Date__c</columns>
+    <columns>Last_Score_Date__c</columns>
+    <filterScope>Everything</filterScope>
+    <label>Hot &amp; Warm Leads</label>
+    <sharedTo>
+        <allInternalUsers/>
+    </sharedTo>
+</ListView>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Topic__c</fullName>
+    <label>Topic</label>
+    <required>true</required>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Signal Classifier</fullName><default>false</default><label>Signal Classifier</label></value>
+            <value><fullName>BD Briefer</fullName><default>false</default><label>BD Briefer</label></value>
+            <value><fullName>Scoring Explainer</fullName><default>false</default><label>Scoring Explainer</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

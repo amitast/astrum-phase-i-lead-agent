@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <defaultLandingTab>standard-Account</defaultLandingTab>
+    <description>Astrum Lead Agent — Phase I BD signal monitoring and outreach prioritisation.</description>
+    <isNavAutoTempTabsDisabled>false</isNavAutoTempTabsDisabled>
+    <isNavPersonalizationDisabled>false</isNavPersonalizationDisabled>
+    <label>Astrum Lead Agent</label>
+    <navType>Standard</navType>
+    <tabs>standard-Account</tabs>
+    <tabs>Signal__c</tabs>
+    <tabs>BD_Action__c</tabs>
+    <formFactors>Large</formFactors>
+    <uiType>Lightning</uiType>
+</CustomApplication>
