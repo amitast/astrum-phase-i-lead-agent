@@ -99,6 +99,22 @@
         <style>TwoColumnsTopToBottom</style>
     </layoutSections>
 
+    <!-- ── Location ─────────────────────────────────────────────────────── -->
+    <layoutSections>
+        <customLabel>true</customLabel>
+        <detailHeading>true</detailHeading>
+        <editHeading>true</editHeading>
+        <label>Location</label>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>BillingAddress</field>
+            </layoutItems>
+        </layoutColumns>
+        <layoutColumns/>
+        <style>TwoColumnsTopToBottom</style>
+    </layoutSections>
+
     <!-- ── System ─────────────────────────────────────────────────────── -->
     <layoutSections>
         <customLabel>true</customLabel>

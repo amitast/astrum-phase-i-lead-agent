@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { fetchClinicalTrialsSignals } from '../sources/clinicaltrials.js';
-import { fetchEdgarSignals, lookupCompanyStage } from '../sources/edgar.js';
+import { fetchEdgarSignals, lookupCompanyProfile } from '../sources/edgar.js';
 import { fetchGlobeNewswireSignals } from '../sources/globenewswire.js';
 import { upsertSignals } from '../salesforce/bulkApi.js';
 import { getSalesforceAuth } from '../salesforce/auth.js';
@@ -79,8 +79,8 @@ export async function runEnrichmentPass(): Promise<void> {
     'Content-Type': 'application/json',
   };
 
-  // Query accounts needing stage enrichment
-  const soql = `SELECT Id, Name FROM Account WHERE RecordType.Name = 'Astrum Target Biotech' AND Company_Stage__c = 'Unknown' LIMIT 200`;
+  // Query accounts needing stage or address enrichment
+  const soql = `SELECT Id, Name FROM Account WHERE RecordType.Name = 'Astrum Target Biotech' AND (Company_Stage__c = 'Unknown' OR BillingCity = null) LIMIT 200`;
   const { data } = await axios.get<{ records: Array<{ Id: string; Name: string }> }>(
     `${baseUrl}/query`,
     { headers, params: { q: soql } },
@@ -88,7 +88,7 @@ export async function runEnrichmentPass(): Promise<void> {
 
   const accounts = data.records ?? [];
   if (accounts.length === 0) {
-    console.log('[processor] Enrichment pass: no accounts need stage enrichment');
+    console.log('[processor] Enrichment pass: all accounts already enriched');
     return;
   }
 
@@ -97,14 +97,25 @@ export async function runEnrichmentPass(): Promise<void> {
 
   for (const account of accounts) {
     try {
-      const stage = await lookupCompanyStage(account.Name);
-      if (stage !== 'Unknown') {
+      const profile = await lookupCompanyProfile(account.Name);
+
+      const patch: Record<string, unknown> = {};
+      if (profile.stage !== 'Unknown')   patch.Company_Stage__c = profile.stage;
+      if (profile.billingStreet)         patch.BillingStreet = profile.billingStreet;
+      if (profile.billingCity)           patch.BillingCity = profile.billingCity;
+      if (profile.billingState)          patch.BillingState = profile.billingState;
+      if (profile.billingPostalCode)     patch.BillingPostalCode = profile.billingPostalCode;
+      if (profile.billingCountry)        patch.BillingCountry = profile.billingCountry;
+      // Sync HQ_Country__c from EDGAR (more authoritative than CT.gov location field)
+      if (profile.billingCountry)        patch.HQ_Country__c = profile.billingCountry;
+
+      if (Object.keys(patch).length > 0) {
         await axios.patch(
           `${baseUrl}/sobjects/Account/${account.Id}`,
-          { Company_Stage__c: stage },
+          patch,
           { headers },
         );
-        console.log(`[processor] ${account.Name} → ${stage}`);
+        console.log(`[processor] ${account.Name} → stage: ${profile.stage}, city: ${profile.billingCity ?? '—'}`);
         updated++;
       }
     } catch (err) {
