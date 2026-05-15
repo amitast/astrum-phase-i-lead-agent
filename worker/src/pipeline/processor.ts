@@ -11,7 +11,7 @@ const API_VERSION = '63.0';
 
 export async function runRegulatoryPass(): Promise<void> {
   console.log('[processor] Starting regulatory pass (ClinicalTrials.gov + EDGAR)…');
-  const lookbackDays = Number(process.env.LOOKBACK_DAYS ?? 7);
+  const lookbackDays = Number(process.env.LOOKBACK_DAYS ?? 30);
 
   let signals: NormalisedSignal[] = [];
 
