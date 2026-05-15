@@ -7,7 +7,7 @@ import { getSalesforceAuth } from '../salesforce/auth.js';
 import { runScoringPass } from '../scoring/scoreWriter.js';
 import type { NormalisedSignal } from '../salesforce/types.js';
 
-const API_VERSION = '61.0';
+const API_VERSION = '63.0';
 
 export async function runRegulatoryPass(): Promise<void> {
   console.log('[processor] Starting regulatory pass (ClinicalTrials.gov + EDGAR)…');
@@ -30,7 +30,11 @@ export async function runRegulatoryPass(): Promise<void> {
   }
 
   await pushToSalesforce(signals, 'regulatory');
-  await runEnrichmentPass();
+  try {
+    await runEnrichmentPass();
+  } catch (err) {
+    console.error('[processor] Enrichment pass failed (non-fatal):', err);
+  }
 }
 
 export async function runPressPass(): Promise<void> {
@@ -81,12 +85,20 @@ export async function runEnrichmentPass(): Promise<void> {
 
   // Query accounts needing stage or address enrichment
   const soql = `SELECT Id, Name FROM Account WHERE RecordType.Name = 'Astrum Target Biotech' AND (Company_Stage__c = 'Unknown' OR BillingCity = null) LIMIT 200`;
-  const { data } = await axios.get<{ records: Array<{ Id: string; Name: string }> }>(
-    `${baseUrl}/query`,
-    { headers, params: { q: soql } },
-  );
+  let queryData: { records: Array<{ Id: string; Name: string }> };
+  try {
+    const { data } = await axios.get<{ records: Array<{ Id: string; Name: string }> }>(
+      `${baseUrl}/query`,
+      { headers, params: { q: soql } },
+    );
+    queryData = data;
+  } catch (err: unknown) {
+    const axErr = err as { response?: { data: unknown; status: number } };
+    console.error('[processor] Enrichment SOQL failed:', JSON.stringify(axErr.response?.data), 'status:', axErr.response?.status);
+    throw err;
+  }
 
-  const accounts = data.records ?? [];
+  const accounts = queryData.records ?? [];
   if (accounts.length === 0) {
     console.log('[processor] Enrichment pass: all accounts already enriched');
     return;
