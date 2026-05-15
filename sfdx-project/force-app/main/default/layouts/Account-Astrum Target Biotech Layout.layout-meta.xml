@@ -126,6 +126,10 @@
                 <behavior>Readonly</behavior>
                 <field>Lead_Agent_External_Id__c</field>
             </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>Score_Breakdown__c</field>
+            </layoutItems>
         </layoutColumns>
         <layoutColumns/>
         <style>TwoColumnsTopToBottom</style>

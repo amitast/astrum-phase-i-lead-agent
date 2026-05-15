@@ -66,6 +66,12 @@ interface AccountScore {
   priorityBand: string;
   signalCount: number;
   latestSignalDate: string;
+  phaseIDriver: string;
+  fitModality: string;
+  fitTA: string;
+  fitStage: string;
+  sourceConfTier: string;
+  scoreBreakdown: string;
 }
 
 // ── Main entry point ────────────────────────────────────────────────────────
@@ -151,6 +157,20 @@ export async function runScoringPass(): Promise<void> {
     await bulkUpsert(baseUrl, headers, 'Account', 'Lead_Agent_External_Id__c', accountUpdates);
   }
 
+  // Write multiline breakdown text via REST PATCH (Bulk API CSV drops multiline field values)
+  for (const s of scores) {
+    if (!s.accountId) continue;
+    try {
+      await axios.patch(
+        `${baseUrl}/sobjects/Account/${s.accountId}`,
+        { Score_Breakdown__c: s.scoreBreakdown },
+        { headers },
+      );
+    } catch (err) {
+      console.warn(`[scoring] Score_Breakdown__c PATCH failed for ${s.accountId}:`, (err as Error).message);
+    }
+  }
+
   const bandSummary = bandCounts(scores);
   console.log(`[scoring] Done — ${scores.length} accounts scored. Bands: ${bandSummary}`);
 }
@@ -163,19 +183,36 @@ function aggregateScore(accountId: string, signals: SignalRow[]): AccountScore {
   let maxAstrumFit = 0;
   let maxSourceConf = 0;
   let latestSignalDate = '';
+  let phaseIDriver = 'Other';
+  let fitModality = 'Unknown';
+  let fitTA = 'Unknown';
+  let fitStage = 'Unknown';
+  let maxSourceConfTier = 'Tier 3-Aggregator';
 
   for (const sig of signals) {
     const phaseIWeight = PHASE_I_READINESS_WEIGHT[sig.Signal_Type__c] ?? 0.10;
-    maxPhaseI = Math.max(maxPhaseI, phaseIWeight);
+    if (phaseIWeight > maxPhaseI) {
+      maxPhaseI = phaseIWeight;
+      phaseIDriver = sig.Signal_Type__c;
+    }
 
     const modalityScore = MODALITY_SCORE[sig.Modality__c] ?? 0;
     const taScore       = TA_SCORE[sig.Therapeutic_Area__c] ?? 0;
     const stageScore    = STAGE_SCORE[sig.Company_Stage__c] ?? 0;
     const astrumFit     = (modalityScore * 0.40) + (taScore * 0.40) + (stageScore * 0.20);
-    maxAstrumFit = Math.max(maxAstrumFit, astrumFit);
+    if (astrumFit > maxAstrumFit) {
+      maxAstrumFit = astrumFit;
+      fitModality = sig.Modality__c;
+      fitTA = sig.Therapeutic_Area__c;
+      fitStage = sig.Company_Stage__c;
+    }
 
     const confTier = sig.Source__r?.Confidence_Tier__c ?? 'Tier 3-Aggregator';
-    maxSourceConf = Math.max(maxSourceConf, SOURCE_CONFIDENCE_SCORE[confTier] ?? 50);
+    const confScore = SOURCE_CONFIDENCE_SCORE[confTier] ?? 50;
+    if (confScore > maxSourceConf) {
+      maxSourceConf = confScore;
+      maxSourceConfTier = confTier;
+    }
 
     if (!latestSignalDate || sig.Signal_Date__c > latestSignalDate) {
       latestSignalDate = sig.Signal_Date__c;
@@ -193,7 +230,7 @@ function aggregateScore(accountId: string, signals: SignalRow[]): AccountScore {
     (sourceConfidenceScore * 0.15),
   );
 
-  return {
+  const partial = {
     accountId,
     externalId,
     phaseIReadinessScore,
@@ -204,7 +241,44 @@ function aggregateScore(accountId: string, signals: SignalRow[]): AccountScore {
     priorityBand: band(overallPriorityScore),
     signalCount: signals.length,
     latestSignalDate,
+    phaseIDriver,
+    fitModality,
+    fitTA,
+    fitStage,
+    sourceConfTier: maxSourceConfTier,
   };
+
+  return { ...partial, scoreBreakdown: buildBreakdownText(partial) };
+}
+
+function buildBreakdownText(s: Omit<AccountScore, 'scoreBreakdown'>): string {
+  const ageDays = s.latestSignalDate
+    ? Math.floor((Date.now() - new Date(s.latestSignalDate).getTime()) / 86_400_000)
+    : null;
+  const phaseIWeight = PHASE_I_READINESS_WEIGHT[s.phaseIDriver] ?? 0.10;
+  return [
+    `Phase I Readiness: ${s.phaseIReadinessScore}/100`,
+    `  Driver: ${s.phaseIDriver} (weight ${phaseIWeight.toFixed(2)})`,
+    ``,
+    `Astrum Fit: ${s.astrumFitScore}/100`,
+    `  Modality: ${s.fitModality} → ${MODALITY_SCORE[s.fitModality] ?? 0}pts (×0.40)`,
+    `  Therapeutic Area: ${s.fitTA} → ${TA_SCORE[s.fitTA] ?? 0}pts (×0.40)`,
+    `  Stage: ${s.fitStage} → ${STAGE_SCORE[s.fitStage] ?? 0}pts (×0.20)`,
+    ``,
+    `Timing: ${s.timingScore}/100`,
+    ageDays !== null
+      ? `  Last signal: ${ageDays} day${ageDays !== 1 ? 's' : ''} ago (${s.latestSignalDate})`
+      : `  No signal date`,
+    ``,
+    `Source Confidence: ${s.sourceConfidenceScore}/100`,
+    `  Source tier: ${s.sourceConfTier}`,
+    ``,
+    `Overall Priority: ${s.overallPriorityScore}/100`,
+    `  Phase I (${s.phaseIReadinessScore}×0.40=${r2(s.phaseIReadinessScore * 0.40)})` +
+    ` + Fit (${s.astrumFitScore}×0.25=${r2(s.astrumFitScore * 0.25)})` +
+    ` + Timing (${s.timingScore}×0.20=${r2(s.timingScore * 0.20)})` +
+    ` + Source (${s.sourceConfidenceScore}×0.15=${r2(s.sourceConfidenceScore * 0.15)})`,
+  ].join('\n');
 }
 
 function computeTimingScore(dateStr: string): number {
