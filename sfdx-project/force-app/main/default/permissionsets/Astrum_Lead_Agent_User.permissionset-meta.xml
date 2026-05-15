@@ -69,32 +69,6 @@
         <recordType>Account.Astrum_Target_Biotech</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
-    <!-- Account standard billing address fields — required for enrichment pass SOQL + PATCH -->
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Account.BillingStreet</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Account.BillingCity</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Account.BillingState</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Account.BillingPostalCode</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Account.BillingCountry</field>
-        <readable>true</readable>
-    </fieldPermissions>
     <!-- Account custom fields (none are required, all need explicit FLS) -->
     <fieldPermissions>
         <editable>true</editable>
