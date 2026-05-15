@@ -68,13 +68,48 @@ async function findCik(companyName: string): Promise<string | null> {
     });
     const hits: Array<{ _source: { entity_id?: string; file_date?: string } }> =
       data?.hits?.hits ?? [];
-    if (hits.length === 0) return null;
-    // Sort by most recent filing date to prefer the canonical CIK
+    if (hits.length === 0) {
+      console.log(`[edgar] No EFTS hits for "${companyName}" — trying unquoted search`);
+      return findCikUnquoted(companyName);
+    }
     hits.sort((a, b) =>
       (b._source.file_date ?? '').localeCompare(a._source.file_date ?? ''),
     );
-    return hits[0]._source.entity_id ?? null;
-  } catch {
+    const cik = hits[0]._source.entity_id ?? null;
+    console.log(`[edgar] Found CIK ${cik} for "${companyName}" (${hits.length} hits)`);
+    return cik;
+  } catch (err) {
+    console.warn(`[edgar] EFTS lookup error for "${companyName}":`, (err as Error).message);
+    return null;
+  }
+}
+
+async function findCikUnquoted(companyName: string): Promise<string | null> {
+  try {
+    const { data } = await axios.get(EFTS_URL, {
+      params: {
+        q: companyName,
+        forms: '10-K',
+        dateRange: 'custom',
+        startdt: '2020-01-01',
+      },
+      timeout: 10_000,
+      headers: { 'User-Agent': USER_AGENT },
+    });
+    const hits: Array<{ _source: { entity_id?: string; file_date?: string; display_names?: string } }> =
+      data?.hits?.hits ?? [];
+    if (hits.length === 0) {
+      console.log(`[edgar] No hits for "${companyName}" (unquoted either) — skipping`);
+      return null;
+    }
+    hits.sort((a, b) =>
+      (b._source.file_date ?? '').localeCompare(a._source.file_date ?? ''),
+    );
+    const cik = hits[0]._source.entity_id ?? null;
+    console.log(`[edgar] Unquoted CIK ${cik} for "${companyName}" — filer: ${hits[0]._source.display_names ?? '?'}`);
+    return cik;
+  } catch (err) {
+    console.warn(`[edgar] Unquoted EFTS lookup error for "${companyName}":`, (err as Error).message);
     return null;
   }
 }
