@@ -1,6 +1,7 @@
 ---
 name: sf-deploy-planner
 description: Use before any Salesforce metadata deployment — when asked "what do I need to deploy?", "I want to add a field", "deploy these changes", or "what's the deployment order?". Reads local SFDX metadata, identifies dependency order, and produces a numbered checklist. Never runs the actual deploy — it plans it.
+model: sonnet
 tools:
   - Read
   - Bash
