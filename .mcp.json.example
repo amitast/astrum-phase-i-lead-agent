@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "salesforce": {
+      "command": "npx",
+      "args": ["-y", "@salesforce/mcp@latest", "--toolsets", "orgs,metadata-read,query,agentforce-read,data-cloud-read"],
+      "env": {}
+    }
+  }
+}
