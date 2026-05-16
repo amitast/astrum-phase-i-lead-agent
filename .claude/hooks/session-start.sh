@@ -15,4 +15,7 @@ npm install
 echo "[session-start] Running typecheck..."
 npm run typecheck
 
+echo "[session-start] Validating Claude skills configuration..."
+bash "$REPO_ROOT/.claude/validate-skills.sh"
+
 echo "[session-start] Done."

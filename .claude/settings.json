@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /home/user/astrum-phase-i-lead-agent/.claude/hooks/pre-tool-guard.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-guard.sh"
           }
         ]
       }
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /home/user/astrum-phase-i-lead-agent/.claude/hooks/stop-reminder.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/stop-reminder.sh"
           }
         ]
       }
