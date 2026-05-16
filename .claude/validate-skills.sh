@@ -178,19 +178,15 @@ for event, groups in data.get('hooks', {}).items():
     if echo "$cmd" | grep -qE '(/home/|/root/)'; then
       warn "hook '$event' uses hardcoded path — use \$CLAUDE_PROJECT_DIR instead"
     fi
-    # Find the .sh script in the command
-    script_path=""
-    for part in $expanded; do
-      if [[ "$part" == *.sh ]]; then
-        script_path="$part"
-        break
-      fi
-    done
-    if [ -n "$script_path" ]; then
+    # Extract just the .sh filename and look it up in .claude/hooks/
+    # (avoids word-splitting issues with spaces in directory names)
+    script_basename=$(echo "$cmd" | grep -oE '[^/]+\.sh' | tail -1)
+    if [ -n "$script_basename" ]; then
+      script_path="$CLAUDE_DIR/hooks/$script_basename"
       if [ ! -f "$script_path" ]; then
-        fail "hook '$event' references missing file: $script_path"
+        fail "hook '$event' references missing file: $script_basename"
       elif [ ! -x "$script_path" ]; then
-        fail "hook '$event' script is not executable: $script_path"
+        fail "hook '$event' script is not executable: $script_basename"
       else
         pass "hook '$event' script exists and is executable"
       fi
