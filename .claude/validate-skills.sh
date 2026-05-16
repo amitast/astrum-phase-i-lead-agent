@@ -148,57 +148,54 @@ settings_file="$CLAUDE_DIR/settings.json"
 if [ ! -f "$settings_file" ]; then
   fail "settings.json not found"
 else
-  # Valid JSON
-  if python3 -m json.tool "$settings_file" > /dev/null 2>&1; then
+  # Valid JSON — pipe via stdin to avoid Windows path format issues with Python
+  if python3 -m json.tool < "$settings_file" > /dev/null 2>&1; then
     pass "valid JSON"
   else
     fail "invalid JSON:"
-    python3 -m json.tool "$settings_file" 2>&1 | sed 's/^/    /' >&2
+    python3 -m json.tool < "$settings_file" 2>&1 | sed 's/^/    /' >&2
   fi
 
-  # Check hook command paths resolve to existing executable files
-  python3 - <<PYEOF
-import json, os, sys, re
+  # Extract hook commands — cat handles the file path (bash), Python reads from stdin pipe
+  hook_commands=$(cat "$settings_file" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for event, groups in data.get('hooks', {}).items():
+    for group in groups:
+        for hook in group.get('hooks', []):
+            cmd = hook.get('command', '')
+            print(f'{event}||{cmd}')
+")
 
-repo_root = "$REPO_ROOT"
-claude_dir = "$CLAUDE_DIR"
-settings_path = "$settings_file"
-
-with open(settings_path) as f:
-    data = json.load(f)
-
-errors = 0
-warnings = 0
-
-for event, event_hooks in data.get("hooks", {}).items():
-    for group in event_hooks:
-        for hook in group.get("hooks", []):
-            cmd = hook.get("command", "")
-            expanded = cmd.replace("\$CLAUDE_PROJECT_DIR", repo_root)
-            # Warn if hardcoded absolute path (not using env var)
-            if re.search(r'(/home/|/Users/|/root/)', cmd):
-                print(f"  ⚠ WARN: hook '{event}' uses hardcoded path — use \$CLAUDE_PROJECT_DIR instead")
-                warnings += 1
-            # Find the script file in the command
-            script_path = None
-            for part in expanded.split():
-                if part.endswith(".sh") or (part.startswith("/") and os.path.sep in part):
-                    script_path = part
-                    break
-            if script_path:
-                if not os.path.isfile(script_path):
-                    print(f"  ✗ FAIL: hook '{event}' references missing file: {script_path}", file=sys.stderr)
-                    errors += 1
-                elif not os.access(script_path, os.X_OK):
-                    print(f"  ✗ FAIL: hook '{event}' script is not executable: {script_path}", file=sys.stderr)
-                    errors += 1
-                else:
-                    print(f"  ✓ hook '{event}' script exists and is executable")
-
-sys.exit(errors)
-PYEOF
-  settings_exit=$?
-  [ $settings_exit -ne 0 ] && ERRORS=$((ERRORS + settings_exit))
+  # Check each hook command using bash (handles POSIX paths correctly on all platforms)
+  while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    event="${line%%||*}"
+    cmd="${line##*||}"
+    # Expand $CLAUDE_PROJECT_DIR
+    expanded="${cmd/\$CLAUDE_PROJECT_DIR/$REPO_ROOT}"
+    # Warn on hardcoded absolute paths
+    if echo "$cmd" | grep -qE '(/home/|/root/)'; then
+      warn "hook '$event' uses hardcoded path — use \$CLAUDE_PROJECT_DIR instead"
+    fi
+    # Find the .sh script in the command
+    script_path=""
+    for part in $expanded; do
+      if [[ "$part" == *.sh ]]; then
+        script_path="$part"
+        break
+      fi
+    done
+    if [ -n "$script_path" ]; then
+      if [ ! -f "$script_path" ]; then
+        fail "hook '$event' references missing file: $script_path"
+      elif [ ! -x "$script_path" ]; then
+        fail "hook '$event' script is not executable: $script_path"
+      else
+        pass "hook '$event' script exists and is executable"
+      fi
+    fi
+  done <<< "$hook_commands"
 fi
 
 # ── Summary ───────────────────────────────────────────────────────────────────
