@@ -18,9 +18,43 @@ ALWAYS consult `PRDS/Astrum_Phase_I_Lead_Identification_Agent_PRD.md` and `archi
 
 ## Project conventions
 - Salesforce org alias: `par-sandbox`
-- Worker language: TypeScript / Node (decision pending — confirm with Amit)
+- Worker language: TypeScript / Node
 - Folder layout: see repo root; do not create top-level folders without approval.
 - Commit messages: conventional commits (`feat:`, `fix:`, `chore:`, `docs:`).
+
+## Commands — Worker (`worker/`)
+```bash
+npm run build       # tsc --skipLibCheck
+npm run dev         # ts-node src/index.ts (runs full pipeline locally)
+npm run typecheck   # tsc --noEmit (type-check without emitting)
+npm run start       # node dist/index.js (run compiled output)
+
+# Deploy to Railway
+railway up --detach --service insightful-empathy
+
+# View deployment logs
+railway logs --deployment <id>
+```
+
+## Commands — Salesforce metadata (`sfdx-project/`)
+```bash
+# Retrieve latest metadata from PAR sandbox
+sf project generate manifest --output-dir manifest --from-org par-sandbox
+sf project retrieve start --manifest manifest/package.xml -o par-sandbox
+```
+
+## Key file paths
+| Purpose | Path |
+|---|---|
+| Worker entry point | `worker/src/index.ts` |
+| Scoring formula | `worker/src/scoring/deterministic.ts` |
+| Score writer (Salesforce PATCH) | `worker/src/scoring/scoreWriter.ts` |
+| Region / US filter | `worker/src/utils/usFilter.ts` |
+| ClinicalTrials.gov source | `worker/src/sources/clinicaltrials.ts` |
+| EDGAR enrichment | `worker/src/sources/edgar.ts` |
+| Salesforce metadata | `sfdx-project/` |
+| Project memory | `LLM-TXTS/Astrum_Phase_I_Lead_Agent_Project_Memory.md` |
+| PRD | `PRDS/Astrum_Phase_I_Lead_Identification_Agent_PRD.md` |
 
 ## Tooling — Salesforce MCP
 This project uses the official `@salesforce/mcp` server (configured in `.mcp.json`).
@@ -30,12 +64,12 @@ This project uses the official `@salesforce/mcp` server (configured in `.mcp.jso
 - Always confirm the target org alias is `par-sandbox` before any MCP tool call. Never target production.
 
 ## Phase gating
-- **Phase 0** (current): docs, blueprint, environment setup only. No Salesforce metadata yet.
-- **Phase 1**: Salesforce data model in PAR sandbox.
-- **Phase 2**: Source ingestion PoC.
-- **Phase 3**: Enrichment + scoring.
-- **Phase 4**: Salesforce UI + BD workflow.
-- **Phase 5**: Pilot validation.
+- **Phase 0** ✅: docs, blueprint, environment setup.
+- **Phase 1** ✅: Salesforce data model in PAR sandbox.
+- **Phase 2** ✅: Source ingestion worker on Railway (ClinicalTrials.gov, EDGAR, GlobeNewswire).
+- **Phase 3** ✅: Deterministic scoring live (13 Hot, 31 Warm, 3 Watch).
+- **Phase 4** ✅: Lightning app, Signals Inbox, list views, BD tabs.
+- **Phase 5** **(current)**: Pilot validation — Catherine's weekly review in progress.
 
 Do not jump phases without Amit's explicit instruction.
 
@@ -44,21 +78,9 @@ Stop and ask. This project values audit trail and source integrity over speed.
 
 ---
 
-# Astrum CRO – Orbit Project Guidelines
-
-## Core Governance & Behavior
-* **Environment Restriction:** All generated metadata must target Developer Sandboxes or Scratch Orgs (current named target: `par-sandbox`) and must be manually tested by a human before any promotion. Never make changes directly to Production.
-* **Challenge the Requirement:** Before generating any new Flow or Apex Trigger, challenge the requirement. Always check if the goal can be achieved with a simpler solution first — default field values, a formula, or a validation rule.
-
-## Grounding & SFDX Integration
-* **Verify Local Metadata:** Before referencing specific fields or picklist values in generated code, verify that they already exist within the local SFDX project.
-* **Dependency Management:** When instructed to deploy changes to Salesforce, ensure all required dependencies (e.g., permission sets, new fields) are deployed first, and verify that each deployment was successful before proceeding.
-* **Metadata Seeding:** When a user requests to "seed my local project with metadata from Salesforce," automatically determine the correct org alias, generate an up-to-date manifest (`sf project generate manifest --output-dir ./manifest --from-org <orgname/alias>`), and retrieve the metadata (`sf project retrieve start --manifest`).
-
-## Coding Standards & Naming Conventions
-* **Flow Naming Conventions:** Always append the specific flow type to the end of both the Label and the API Name. Examples: "Update Orbit Account: After Save", "Send Reminder: Scheduled".
-* **Flow Descriptions:** Include a detailed description wherever supported, including Get Records elements, Assignments, and Variables. Exception: the Start element does not support descriptions.
-* **Bypass Logic:** Every record-triggered Flow must include bypass logic so it can be temporarily disabled for data loads or exceptions. Control this bypass through a Custom Permission (e.g., "Bypass Flow").
-
-## Reference Material
-* **Use Existing Examples:** When tasked with building a Flow, reference the concrete examples in the `Example/Flows` directory. Use these as templates to produce valid XML that deploys successfully to the Orbit org.
+## Salesforce coding standards
+- Verify all field and object API names exist in `sfdx-project/` before generating metadata. Never invent API names.
+- Deploy dependencies (permission sets, fields) before dependent objects. Confirm each deploy succeeded before proceeding.
+- Before generating a new Flow or Apex Trigger, check whether a formula field or validation rule suffices.
+- Every record-triggered Flow must include bypass logic (Custom Permission: `Bypass_Flow`) to allow safe data loads.
+- Flow Label and API Name must both end with the flow type: e.g. "Update Signal Status: After Save".
